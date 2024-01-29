@@ -51,13 +51,12 @@ int main() {
     }
 
     // Print the result matrix
-    printf("Result Matrix:\n");
+    printf(1, "Result Matrix:");
     for (int i = 0; i < MATRIX_SIZE; i++) {
         for (int j = 0; j < MATRIX_SIZE; j++) {
-            printf("%d ", resultMatrix[i][j]);
+            printf(1, "%d ", resultMatrix[i][j]);
         }
-        printf("\n");
     }
 
-    return 0;
+    exit();
 }
