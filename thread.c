@@ -2,6 +2,7 @@
 #include "user.h"
 #include "mmu.h"
 #include "thread.h"
+#include "x86.h"
 
 int thread_create(void (*function) (void *), void *arg)
 {
