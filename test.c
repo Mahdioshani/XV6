@@ -26,11 +26,12 @@ int resultMatrix[MATRIX_SIZE][MATRIX_SIZE];
 // Function to be executed by each thread
 void multiplyRow(void *arg) {
     int row = *((int *)arg);
-
+    printf(1,"current row== %d\n",row);
     for (int col = 0; col < MATRIX_SIZE; col++) {
         resultMatrix[row][col] = 0;
         for (int k = 0; k < MATRIX_SIZE; k++) {
             resultMatrix[row][col] += matrixA[row][k] * matrixB[k][col];
+
         }
     }
 
@@ -39,10 +40,13 @@ void multiplyRow(void *arg) {
 
 int main() {
     int tid[MATRIX_SIZE];
-
+    int temp[MATRIX_SIZE];
     // Create threads
     for (int i = 0; i < MATRIX_SIZE; i++) {
-        tid[i] = thread_create(&multiplyRow, &i);
+//        int* j= malloc(sizeof(int));
+//        *j=i;
+        temp[i]=i;
+        tid[i] = thread_create(&multiplyRow, &temp[i]);
     }
 
     // Wait for all threads to finish
