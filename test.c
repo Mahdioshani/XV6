@@ -2,6 +2,7 @@
 #include "stat.h"
 #include "user.h"
 #include "thread.h"
+#include "lock.h"
 
 #define MATRIX_SIZE 5
 
@@ -22,6 +23,7 @@ int matrixB[MATRIX_SIZE][MATRIX_SIZE] = {
 };
 
 int resultMatrix[MATRIX_SIZE][MATRIX_SIZE];
+lock_t *lock;
 
 // Function to be executed by each thread
 void multiplyRow(void *arg) {
@@ -30,8 +32,9 @@ void multiplyRow(void *arg) {
     for (int col = 0; col < MATRIX_SIZE; col++) {
         resultMatrix[row][col] = 0;
         for (int k = 0; k < MATRIX_SIZE; k++) {
+            lock_accuire(lock);
             resultMatrix[row][col] += matrixA[row][k] * matrixB[k][col];
-
+            lock_release(lock);
         }
     }
 
@@ -41,6 +44,7 @@ void multiplyRow(void *arg) {
 int main() {
     int tid[MATRIX_SIZE];
     int temp[MATRIX_SIZE];
+    lock_init(lock);
     // Create threads
     for (int i = 0; i < MATRIX_SIZE; i++) {
 //        int* j= malloc(sizeof(int));
