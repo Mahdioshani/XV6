@@ -42,7 +42,7 @@ int main() {
 
     // Create threads
     for (int i = 0; i < MATRIX_SIZE; i++) {
-        tid = thread_create(&multiplyRow, &i);
+        tid[i] = thread_create(&multiplyRow, &i);
     }
 
     // Wait for all threads to finish
