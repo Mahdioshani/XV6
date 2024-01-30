@@ -355,6 +355,7 @@ scheduler(void)
                     c->proc = p;
                     switchuvm(p);
                     p->state = RUNNING;
+                    if(p->pid!=1 && p->pid!=2)
                     cprintf("pid :%d name: %s\n",p->pid,p->name);
                     swtch(&(c->scheduler), p->context);
                     switchkvm();
