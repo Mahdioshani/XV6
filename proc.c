@@ -333,39 +333,84 @@ wait(void) {
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+
 void
-scheduler(void) {
-    struct proc *p;
-    struct cpu *c = mycpu();
-    c->proc = 0;
+scheduler(void)
+    {
+        struct proc *p;
+        struct cpu *c = mycpu();
+        c->proc = 0;
+        for(;;){
+            // Enable interrupts on this processor.
+            sti();
 
-    for (;;) {
-        // Enable interrupts on this processor.
-        sti();
+            // Loop over process table looking for process to run.
+            acquire(&ptable.lock);
 
-        // Loop over process table looking for process to run.
-        acquire(&ptable.lock);
-        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-            if (p->state != RUNNABLE)
-                continue;
 
-            // Switch to chosen process.  It is the process's job
-            // to release ptable.lock and then reacquire it
-            // before jumping back to us.
-            c->proc = p;
-            switchuvm(p);
-            p->state = RUNNING;
+            for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+                if((p->state != RUNNABLE && p->thread_count==0)|| p->is_thread==1)
+                    continue;
+                //cprintf("this process select:%d name: %s\n",p->pid,p->name);
+                // Switch to chosen process.  It is the process's job
+                // to release ptable.lock and then reacquire it
+                // before jumping back to us.
+                if(p->thread_count>0){
+                    if(p->turn==0){
+                        if(p->state!=RUNNABLE){
+                            p->turn=1;
+                            //cprintf("im here now");
+                        }
+                        c->proc = p;
+                        switchuvm(p);
+                        p->state = RUNNING;
+                        //cprintf("pid :%d name: %s\n",p->pid,p->name);
+                        swtch(&(c->scheduler), p->context);
+                        switchkvm();
 
-            swtch(&(c->scheduler), p->context);
-            switchkvm();
+                        // Process is done running for now.
+                        // It should have changed its p->state before coming back.
+                        c->proc = 0;
+                    }if(p->turn!=0){
+                        int index=0;
+                        struct proc *p2;
+                        for(p2 = ptable.proc; p2 < &ptable.proc[NPROC]; p2++){
+                            if(p2->state != RUNNABLE|| p2->is_thread==0|| p2->parent!=p)
+                                continue;
+                            index++;
+                            if(index==p->turn){
+                                c->proc = p2;
+                                switchuvm(p2);
+                                p2->state = RUNNING;
+                                //cprintf("pid :%d index of threead: %d name: %s\n",p->pid,index,p->name);
+                                swtch(&(c->scheduler), p2->context);
+                                switchkvm();
 
-            // Process is done running for now.
-            // It should have changed its p->state before coming back.
-            c->proc = 0;
+                                // Process is done running for now.
+                                // It should have changed its p->state before coming back.
+                                c->proc = 0;
+                                break;
+                            }
+                        }
+                    }
+                    p->turn=(p->turn+1)%(p->thread_count+1);
+                }
+                else{
+                    c->proc = p;
+                    switchuvm(p);
+                    p->state = RUNNING;
+                    cprintf("pid :%d name: %s\n",p->pid,p->name);
+                    swtch(&(c->scheduler), p->context);
+                    switchkvm();
+
+                    // Process is done running for now.
+                    // It should have changed its p->state before coming back.
+                    c->proc = 0;
+                }
+            }
+            release(&ptable.lock);
+
         }
-        release(&ptable.lock);
-
-    }
 }
 
 // Enter scheduler.  Must hold only ptable.lock
@@ -600,7 +645,6 @@ join(int tid, void **stack) {
     struct proc *p;
     int havekids, pid;
     struct proc *curproc = myproc();
-
     acquire(&ptable.lock);
     for (;;) {
         // Scan through table looking for exited children.
